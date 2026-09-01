@@ -26,9 +26,8 @@ class MediaAdapter(private val mediaList: List<MediaItem>) :
         val item = mediaList[position]
         holder.titleTextView.text = item.title ?: item.name ?: ""
 
-        val posterPath = item.poster_path
-        if (!posterPath.isNullOrEmpty()) {
-            val posterUrl = "https://image.tmdb.org/t/p/w500$posterPath"
+        val posterUrl = item.poster
+        if (!posterUrl.isNullOrEmpty()) {
             holder.posterImageView.load(posterUrl) {
                 crossfade(true)
             }
