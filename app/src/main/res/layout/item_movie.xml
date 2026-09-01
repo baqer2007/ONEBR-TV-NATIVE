@@ -4,14 +4,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="6dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="6dp"
-    app:cardBackgroundColor="#1E1E24">
+    android:layout_margin="5dp"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="#16161F">
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="220dp">
+        android:layout_height="210dp">
 
         <ImageView
             android:id="@+id/posterImageView"
@@ -19,23 +19,25 @@
             android:layout_height="match_parent"
             android:scaleType="centerCrop" />
 
+        <!-- طبقة تدرج لوني لإبراز النص -->
         <View
             android:layout_width="match_parent"
-            android:layout_height="70dp"
+            android:layout_height="75dp"
             android:layout_alignParentBottom="true"
-            android:background="#99000000" />
+            android:background="#B30A0A0F" />
 
         <TextView
             android:id="@+id/titleTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:padding="8dp"
+            android:padding="6dp"
             android:textColor="#FFFFFF"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:gravity="center"
             android:maxLines="2"
             android:ellipsize="end" />
+
     </RelativeLayout>
 </androidx.cardview.widget.CardView>
