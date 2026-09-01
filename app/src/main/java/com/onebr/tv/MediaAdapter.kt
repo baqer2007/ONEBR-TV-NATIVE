@@ -26,8 +26,13 @@ class MediaAdapter(private val mediaList: List<MediaItem>) :
         val item = mediaList[position]
         holder.titleTextView.text = item.title ?: item.name ?: ""
 
-        val posterUrl = "https://image.tmdb.org/t/p/w500${item.poster_path}"
-        holder.posterImageView.load(posterUrl)
+        val posterPath = item.poster_path
+        if (!posterPath.isNullOrEmpty()) {
+            val posterUrl = "https://image.tmdb.org/t/p/w500$posterPath"
+            holder.posterImageView.load(posterUrl) {
+                crossfade(true)
+            }
+        }
 
         holder.itemView.setOnClickListener {
             val intent = Intent(holder.itemView.context, PlayerActivity::class.java).apply {
