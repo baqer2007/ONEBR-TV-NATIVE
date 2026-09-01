@@ -18,8 +18,7 @@ class PlayerActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // تفعيل وضع ملء الشاشة والشاشة الأفقية لمشاهدة سينمائية
+
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         window.setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
@@ -37,11 +36,11 @@ class PlayerActivity : AppCompatActivity() {
         val tmdbId = intent.getIntExtra("TMDB_ID", 0)
         val mediaType = intent.getStringExtra("MEDIA_TYPE") ?: "movie"
 
-        // سيرفرات تشغيل بديلة تضمن عمل الفيديو
+        // سيرفر بث سريع وموثوق للأفلام والمسلسلات
         val streamUrl = if (mediaType == "tv") {
-            "https://vidsrc.xyz/embed/tv?tmdb=$tmdbId&season=1&episode=1"
+            "https://vidsrc.cc/v2/embed/tv/$tmdbId/1/1"
         } else {
-            "https://vidsrc.xyz/embed/movie?tmdb=$tmdbId"
+            "https://vidsrc.cc/v2/embed/movie/$tmdbId"
         }
 
         webView.settings.apply {
@@ -52,17 +51,13 @@ class PlayerActivity : AppCompatActivity() {
             allowContentAccess = true
             useWideViewPort = true
             loadWithOverviewMode = true
-            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
         }
 
         webView.webChromeClient = WebChromeClient()
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                // منع الإعلانات المنبثقة من فتح تطبيقات خارجية
-                if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
-                    return false
-                }
-                return true
+                return false
             }
         }
 
