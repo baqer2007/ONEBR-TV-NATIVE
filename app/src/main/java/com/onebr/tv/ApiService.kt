@@ -1,13 +1,13 @@
-package com.onebr.tv.network
+package com.onebr.tv
 
-import com.onebr.tv.models.ApiResponse
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Query
 
 interface ApiService {
     @GET("api/trending")
-    suspend fun getTrending(): ApiResponse
+    suspend fun getTrendingMedia(@Query("page") page: Int = 1): MediaResponse
 
     companion object {
         private const val BASE_URL = "https://onebr-backend.vercel.app/"
