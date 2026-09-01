@@ -7,6 +7,8 @@ import android.view.View
 import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -15,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 class PlayerActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private var isFallbackLoaded = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,11 +40,18 @@ class PlayerActivity : AppCompatActivity() {
         val tmdbId = intent.getIntExtra("TMDB_ID", 0)
         val mediaType = intent.getStringExtra("MEDIA_TYPE") ?: "movie"
 
-        // اختيار الرابط وفقاً للنوع
-        val streamUrl = if (mediaType == "tv") {
-            "https://vidsrc.cc/v2/embed/tv/$tmdbId/1/1"
+        // السيرفر الأساسي عالي الاستقرار
+        val primaryUrl = if (mediaType == "tv") {
+            "https://vidsrc.to/embed/tv/$tmdbId/1/1"
         } else {
-            "https://vidsrc.cc/v2/embed/movie/$tmdbId"
+            "https://vidsrc.to/embed/movie/$tmdbId"
+        }
+
+        // السيرفر الاحتياطي التلقائي في حال تعطل الأول
+        val fallbackUrl = if (mediaType == "tv") {
+            "https://player.autoembed.cc/embed/tv/$tmdbId/1/1"
+        } else {
+            "https://player.autoembed.cc/embed/movie/$tmdbId"
         }
 
         val cookieManager = CookieManager.getInstance()
@@ -57,23 +67,25 @@ class PlayerActivity : AppCompatActivity() {
             allowContentAccess = true
             useWideViewPort = true
             loadWithOverviewMode = true
-            javaScriptCanOpenWindowsAutomatically = true
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            // User-Agent حديث لتخطي فحص البوت
-            userAgentString = "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
         }
 
-        webView.webChromeClient = object : WebChromeClient() {}
+        webView.webChromeClient = WebChromeClient()
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
-                    return false
+                return false
+            }
+
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                if (request?.isForMainFrame == true && !isFallbackLoaded) {
+                    isFallbackLoaded = true
+                    view?.loadUrl(fallbackUrl)
                 }
-                return true
             }
         }
 
-        webView.loadUrl(streamUrl)
+        webView.loadUrl(primaryUrl)
     }
 
     override fun onDestroy() {
