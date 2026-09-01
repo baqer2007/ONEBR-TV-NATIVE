@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Source Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -22,16 +22,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install and Setup Gradle Wrapper
+      - name: Build with Gradle Wrapper
         run: |
-          gradle wrapper --gradle-version 8.2.1 --distribution-type bin
-          chmod +x gradlew
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+          gradle wrapper --gradle-version 8.2.1
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ONEBR-TV-App
+          name: ONEBR-TV-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
