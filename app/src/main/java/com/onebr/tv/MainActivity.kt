@@ -8,15 +8,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
+    private lateinit var adapter: MediaAdapter
     private val apiService = ApiService.create()
-    private val allMediaList = mutableListOf<MediaItem>()
+    
+    private val mediaList = mutableListOf<MediaItem>()
+    private var currentPage = 1
+    private var isLoading = false
+    private var hasMore = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,44 +29,52 @@ class MainActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerView)
         progressBar = findViewById(R.id.progressBar)
 
-        recyclerView.layoutManager = GridLayoutManager(this, 3)
+        val layoutManager = GridLayoutManager(this, 3)
+        recyclerView.layoutManager = layoutManager
+        adapter = MediaAdapter(mediaList)
+        recyclerView.adapter = adapter
 
-        fetchMediaData()
+        // مستشعر النزول للأسفل لتحميل المزيد تلقائياً (Infinite Scroll)
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                if (dy > 0 && !isLoading && hasMore) {
+                    val visibleItemCount = layoutManager.childCount
+                    val totalItemCount = layoutManager.itemCount
+                    val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+
+                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 6) {
+                        currentPage++
+                        fetchMediaData(currentPage)
+                    }
+                }
+            }
+        })
+
+        fetchMediaData(1)
     }
 
-    private fun fetchMediaData() {
-        progressBar.visibility = View.VISIBLE
+    private fun fetchMediaData(page: Int) {
+        isLoading = true
+        if (page == 1) progressBar.visibility = View.VISIBLE
+
         lifecycleScope.launch {
             try {
-                // جلب أول 4 صفحات معاً لعرض مكتبة أعمال ضخمة
-                val p1 = async { apiService.getTrendingMedia(page = 1) }
-                val p2 = async { apiService.getTrendingMedia(page = 2) }
-                val p3 = async { apiService.getTrendingMedia(page = 3) }
-                val p4 = async { apiService.getTrendingMedia(page = 4) }
-
-                val responses = listOf(p1.await(), p2.await(), p3.await(), p4.await())
-                allMediaList.clear()
-                for (res in responses) {
-                    res.data?.let { allMediaList.addAll(it) }
-                }
-
-                if (allMediaList.isEmpty()) {
-                    Toast.makeText(this@MainActivity, "لم يتم العثور على أعمال", Toast.LENGTH_SHORT).show()
+                val response = apiService.getTrendingMedia(page = page)
+                val newItems = response.data ?: emptyList()
+                if (newItems.isNotEmpty()) {
+                    val startPos = mediaList.size
+                    mediaList.addAll(newItems)
+                    adapter.notifyItemRangeInserted(startPos, newItems.size)
                 } else {
-                    recyclerView.adapter = MediaAdapter(allMediaList)
+                    hasMore = false
                 }
             } catch (e: Exception) {
-                // في حال فشل جلب الصفحات المتعددة، يتم الاعتماد على الصفحة الأولى كخطة بديلة
-                try {
-                    val fallback = apiService.getTrendingMedia(page = 1)
-                    fallback.data?.let {
-                        allMediaList.addAll(it)
-                        recyclerView.adapter = MediaAdapter(allMediaList)
-                    }
-                } catch (err: Exception) {
-                    Toast.makeText(this@MainActivity, "خطأ بالاتصال: ${err.localizedMessage}", Toast.LENGTH_SHORT).show()
+                if (page == 1) {
+                    Toast.makeText(this@MainActivity, "خطأ في جلب البيانات: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                 }
             } finally {
+                isLoading = false
                 progressBar.visibility = View.GONE
             }
         }
