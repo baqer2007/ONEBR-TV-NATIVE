@@ -1,8 +1,10 @@
 package com.onebr.tv
 
 import android.annotation.SuppressLint
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -16,37 +18,52 @@ class PlayerActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_player)
-
-        // إخفاء أشرطة النظام لتشغيل الفيديو بملء الشاشة
+        
+        // تفعيل وضع ملء الشاشة والشاشة الأفقية لمشاهدة سينمائية
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN
+        )
         window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_FULLSCREEN
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            or View.SYSTEM_UI_FLAG_FULLSCREEN
         )
 
-        val mediaId = intent.getLongExtra("MEDIA_ID", 0)
+        webView = WebView(this)
+        setContentView(webView)
+
+        val tmdbId = intent.getIntExtra("TMDB_ID", 0)
         val mediaType = intent.getStringExtra("MEDIA_TYPE") ?: "movie"
 
-        webView = findViewById(R.id.playerWebView)
-        val settings: WebSettings = webView.settings
-        settings.javaScriptEnabled = true
-        settings.domStorageEnabled = true
-        settings.mediaPlaybackRequiresUserGesture = false
+        // سيرفرات تشغيل بديلة تضمن عمل الفيديو
+        val streamUrl = if (mediaType == "tv") {
+            "https://vidsrc.xyz/embed/tv?tmdb=$tmdbId&season=1&episode=1"
+        } else {
+            "https://vidsrc.xyz/embed/movie?tmdb=$tmdbId"
+        }
+
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            mediaPlaybackRequiresUserGesture = false
+            allowFileAccess = true
+            allowContentAccess = true
+            useWideViewPort = true
+            loadWithOverviewMode = true
+            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
 
         webView.webChromeClient = WebChromeClient()
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                // منع فتح أي نوافذ منبثقة أو تحويلات إعلانية خارج نطاق المشغل
-                val isEmbed = url?.contains("vidsrc") == true || url?.contains("autoembed") == true
-                return !isEmbed
+                // منع الإعلانات المنبثقة من فتح تطبيقات خارجية
+                if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
+                    return false
+                }
+                return true
             }
-        }
-
-        val streamUrl = if (mediaType == "tv") {
-            "https://vidsrc.to/embed/tv/$mediaId/1/1"
-        } else {
-            "https://vidsrc.to/embed/movie/$mediaId"
         }
 
         webView.loadUrl(streamUrl)
