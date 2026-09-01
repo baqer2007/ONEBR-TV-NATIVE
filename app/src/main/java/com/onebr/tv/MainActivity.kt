@@ -33,14 +33,14 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val response = apiService.getTrendingMedia(page = 1)
-                val items = response.results ?: emptyList()
+                val items = response.data ?: emptyList()
                 if (items.isEmpty()) {
-                    Toast.makeText(this@MainActivity, "لم يتم العثور على أعمال، تحقق من خادم Vercel", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "لم يتم العثور على أعمال", Toast.LENGTH_SHORT).show()
                 } else {
                     recyclerView.adapter = MediaAdapter(items)
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@MainActivity, "خطأ بالاتصال: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "خطأ بالاتصال: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             } finally {
                 progressBar.visibility = View.GONE
             }
