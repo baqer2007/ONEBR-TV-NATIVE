@@ -5,6 +5,7 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -36,28 +37,39 @@ class PlayerActivity : AppCompatActivity() {
         val tmdbId = intent.getIntExtra("TMDB_ID", 0)
         val mediaType = intent.getStringExtra("MEDIA_TYPE") ?: "movie"
 
-        // سيرفر بث سريع وموثوق للأفلام والمسلسلات
+        // اختيار الرابط وفقاً للنوع
         val streamUrl = if (mediaType == "tv") {
             "https://vidsrc.cc/v2/embed/tv/$tmdbId/1/1"
         } else {
             "https://vidsrc.cc/v2/embed/movie/$tmdbId"
         }
 
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.setAcceptCookie(true)
+        cookieManager.setAcceptThirdPartyCookies(webView, true)
+
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            databaseEnabled = true
             mediaPlaybackRequiresUserGesture = false
             allowFileAccess = true
             allowContentAccess = true
             useWideViewPort = true
             loadWithOverviewMode = true
-            userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
+            javaScriptCanOpenWindowsAutomatically = true
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            // User-Agent حديث لتخطي فحص البوت
+            userAgentString = "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
         }
 
-        webView.webChromeClient = WebChromeClient()
+        webView.webChromeClient = object : WebChromeClient() {}
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                return false
+                if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
+                    return false
+                }
+                return true
             }
         }
 
