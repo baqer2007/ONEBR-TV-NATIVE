@@ -16,8 +16,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var adapter: MediaAdapter
     private val apiService = ApiService.create()
-    
+
     private val mediaList = mutableListOf<MediaItem>()
+    private val loadedIds = HashSet<Int>() // لمنع تكرار أي فيلم نهائياً
     private var currentPage = 1
     private var isLoading = false
     private var hasMore = true
@@ -34,7 +35,6 @@ class MainActivity : AppCompatActivity() {
         adapter = MediaAdapter(mediaList)
         recyclerView.adapter = adapter
 
-        // مستشعر النزول للأسفل لتحميل المزيد تلقائياً (Infinite Scroll)
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
                     val totalItemCount = layoutManager.itemCount
                     val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
-                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 6) {
+                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 4) {
                         currentPage++
                         fetchMediaData(currentPage)
                     }
@@ -62,16 +62,27 @@ class MainActivity : AppCompatActivity() {
             try {
                 val response = apiService.getTrendingMedia(page = page)
                 val newItems = response.data ?: emptyList()
-                if (newItems.isNotEmpty()) {
+
+                // فلترة العناصر المكررة
+                val uniqueItems = newItems.filter { item ->
+                    if (!loadedIds.contains(item.id)) {
+                        loadedIds.add(item.id)
+                        true
+                    } else {
+                        false
+                    }
+                }
+
+                if (uniqueItems.isNotEmpty()) {
                     val startPos = mediaList.size
-                    mediaList.addAll(newItems)
-                    adapter.notifyItemRangeInserted(startPos, newItems.size)
-                } else {
+                    mediaList.addAll(uniqueItems)
+                    adapter.notifyItemRangeInserted(startPos, uniqueItems.size)
+                } else if (page > 1) {
                     hasMore = false
                 }
             } catch (e: Exception) {
                 if (page == 1) {
-                    Toast.makeText(this@MainActivity, "خطأ في جلب البيانات: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "خطأ بالاتصال: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                 }
             } finally {
                 isLoading = false
