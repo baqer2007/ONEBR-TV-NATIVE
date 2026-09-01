@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -15,6 +16,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
     private val apiService = ApiService.create()
+    private val allMediaList = mutableListOf<MediaItem>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,15 +34,34 @@ class MainActivity : AppCompatActivity() {
         progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                val response = apiService.getTrendingMedia(page = 1)
-                val items = response.data ?: emptyList()
-                if (items.isEmpty()) {
+                // جلب أول 4 صفحات معاً لعرض مكتبة أعمال ضخمة
+                val p1 = async { apiService.getTrendingMedia(page = 1) }
+                val p2 = async { apiService.getTrendingMedia(page = 2) }
+                val p3 = async { apiService.getTrendingMedia(page = 3) }
+                val p4 = async { apiService.getTrendingMedia(page = 4) }
+
+                val responses = listOf(p1.await(), p2.await(), p3.await(), p4.await())
+                allMediaList.clear()
+                for (res in responses) {
+                    res.data?.let { allMediaList.addAll(it) }
+                }
+
+                if (allMediaList.isEmpty()) {
                     Toast.makeText(this@MainActivity, "لم يتم العثور على أعمال", Toast.LENGTH_SHORT).show()
                 } else {
-                    recyclerView.adapter = MediaAdapter(items)
+                    recyclerView.adapter = MediaAdapter(allMediaList)
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@MainActivity, "خطأ بالاتصال: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                // في حال فشل جلب الصفحات المتعددة، يتم الاعتماد على الصفحة الأولى كخطة بديلة
+                try {
+                    val fallback = apiService.getTrendingMedia(page = 1)
+                    fallback.data?.let {
+                        allMediaList.addAll(it)
+                        recyclerView.adapter = MediaAdapter(allMediaList)
+                    }
+                } catch (err: Exception) {
+                    Toast.makeText(this@MainActivity, "خطأ بالاتصال: ${err.localizedMessage}", Toast.LENGTH_SHORT).show()
+                }
             } finally {
                 progressBar.visibility = View.GONE
             }
