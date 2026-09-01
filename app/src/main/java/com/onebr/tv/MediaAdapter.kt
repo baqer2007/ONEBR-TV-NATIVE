@@ -24,12 +24,10 @@ class MediaAdapter(private val mediaList: List<MediaItem>) :
 
     override fun onBindViewHolder(holder: MediaViewHolder, position: Int) {
         val item = mediaList[position]
-        holder.titleTextView.text = item.title ?: item.name ?: "بدون عنوان"
-        
+        holder.titleTextView.text = item.title ?: item.name ?: ""
+
         val posterUrl = "https://image.tmdb.org/t/p/w500${item.poster_path}"
-        holder.posterImageView.load(posterUrl) {
-            crossfade(true)
-        }
+        holder.posterImageView.load(posterUrl)
 
         holder.itemView.setOnClickListener {
             val intent = Intent(holder.itemView.context, PlayerActivity::class.java).apply {
